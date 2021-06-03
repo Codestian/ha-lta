@@ -12,5 +12,6 @@
   "dependencies": [],
   "codeowners": [
     "@Codestian"
-  ]
+  ],
+  "version": "1.0.0"
 }
