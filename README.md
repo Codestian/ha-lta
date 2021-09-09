@@ -29,6 +29,7 @@ Add the following to your configuration.yaml file and restart Home Assistant to 
 sensor:
   - platform: lta
     bus_stop_code: 'XXXXX'
+    api_key: 'XXXXXXXXXX'
 ```
 
 ## Usage
