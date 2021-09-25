@@ -18,26 +18,34 @@ _LOGGER = logging.getLogger(__name__)
 SCAN_INTERVAL = timedelta(minutes=1)
 
 CONF_API_KEY = "api_key"
-CONF_BUS_STOP_CODE = "bus_stop_code"
+CONF_BUS_STOPS = "bus_stops"
+CONF_CODE = "code"
+CONF_BUSES = "buses"
 
 BUS_ARRIVING = "ARR"
 BUS_UNAVAILABLE = "NA"
 
+BUS_SCHEMA = {
+    vol.Required(CONF_CODE): cv.string,
+    vol.Required(CONF_BUSES): vol.All(cv.ensure_list, [cv.string]),
+}
+
 PLATFORM_SCHEMA = PLATFORM_SCHEMA.extend(
-    {vol.Required(CONF_API_KEY): cv.string, vol.Required(CONF_BUS_STOP_CODE): cv.string}
+    {
+        vol.Required(CONF_API_KEY): cv.string,
+        vol.Required(CONF_BUS_STOPS): vol.All(cv.ensure_list, [vol.Schema(BUS_SCHEMA)]),
+    }
 )
 
 
 async def async_setup_platform(hass, config, async_add_entities, discovery_info=None):
-    """Setup sensor and initialize platform with configuration values"""
-
-    hass.data["lta"] = {"buses": []}
+    """Setup sensor and initialize platform with configuration values."""
 
     def create_bus_sensor(
-        bus_number, bus_order, bus_latitude, bus_longitude, bus_timing
+        bus_stop, bus_number, bus_order, bus_latitude, bus_longitude, bus_timing
     ):
         def convert_datetime(bustime):
-            """Convert UTC 8+ datetime to the number of minutes before bus arrive"""
+            """Convert UTC 8+ datetime to the number of minutes before bus arrives."""
             if bustime:
                 time_bus = parser.parse(bustime).astimezone(tz.UTC)
                 time_now = datetime.now(tz=timezone.utc)
@@ -54,84 +62,72 @@ async def async_setup_platform(hass, config, async_add_entities, discovery_info=
                 return BUS_UNAVAILABLE
 
         bus_dict = {
-            "unique_id": f"{config.get(CONF_BUS_STOP_CODE)}_{bus_number}_{bus_order}",
-            "attributes": {} if (bus_latitude == "0" and bus_longitude == "0") or (bus_latitude == "" and bus_longitude == "") else {
-                "latitude": bus_latitude,
-                "longitude": bus_longitude
-            },
+            "unique_id": f"{bus_stop}_{bus_number}_{bus_order}",
+            "attributes": {}
+            if (bus_latitude == "0" and bus_longitude == "0")
+            or (bus_latitude == "" and bus_longitude == "")
+            else {"latitude": bus_latitude, "longitude": bus_longitude},
             "state": convert_datetime(bus_timing),
         }
 
         return bus_dict
 
     async def async_update_data():
-        """Poll API and update data to sensors"""
+        """Poll API and update data to sensors."""
         async with async_timeout.timeout(20):
 
             sensors = []
-            buses = []
 
+            """Retrieve all bus timings from each bus stop."""
             try:
+                for bus_stop in config.get(CONF_BUS_STOPS):
 
-                data = await get_bus_arrival(
-                    config.get(CONF_API_KEY), config.get(CONF_BUS_STOP_CODE)
-                )
-
-                for bus in data:
-                    buses.append(bus["ServiceNo"])
-
-                if not hass.data["lta"]["buses"]:
-                    hass.data["lta"]["buses"] = list(buses)
-                else:
-                    if len(buses) > len(hass.data["lta"]["buses"]):
-                        hass.data["lta"]["buses"] = list(buses)
-
-                for bus in hass.data["lta"]["buses"]:
-                    test = next(
-                        (x for x in data if x["ServiceNo"] == bus), {"ServiceNo": ""}
+                    data = await get_bus_arrival(
+                        config.get(CONF_API_KEY), bus_stop["code"]
                     )
 
-                    sensors.append(
-                        create_bus_sensor(
-                            bus,
-                            "1",
-                            test["NextBus"]["Latitude"],
-                            test["NextBus"]["Longitude"],
-                            test["NextBus"]["EstimatedArrival"],
-                        )
-                    )
-                    sensors.append(
-                        create_bus_sensor(
-                            bus,
-                            "2",
-                            test["NextBus2"]["Latitude"],
-                            test["NextBus2"]["Longitude"],
-                            test["NextBus2"]["EstimatedArrival"],
-                        )
-                    )
-                    sensors.append(
-                        create_bus_sensor(
-                            bus,
-                            "3",
-                            test["NextBus3"]["Latitude"],
-                            test["NextBus3"]["Longitude"],
-                            test["NextBus3"]["EstimatedArrival"],
-                        )
-                    )
+                    for bus in data:
+                        """Loop through retrieved data and filter by configured buses."""
+                        if bus["ServiceNo"] in list(bus_stop["buses"]):
+
+                            """Create entity for 1st timing."""
+                            sensors.append(
+                                create_bus_sensor(
+                                    bus_stop["code"],
+                                    bus["ServiceNo"],
+                                    "1",
+                                    bus["NextBus"]["Latitude"],
+                                    bus["NextBus"]["Longitude"],
+                                    bus["NextBus"]["EstimatedArrival"],
+                                )
+                            )
+
+                            """Create entity for 2nd timing."""
+                            sensors.append(
+                                create_bus_sensor(
+                                    bus_stop["code"],
+                                    bus["ServiceNo"],
+                                    "2",
+                                    bus["NextBus2"]["Latitude"],
+                                    bus["NextBus2"]["Longitude"],
+                                    bus["NextBus2"]["EstimatedArrival"],
+                                )
+                            )
+
+                            """Create entity for 3rd timing."""
+                            sensors.append(
+                                create_bus_sensor(
+                                    bus_stop["code"],
+                                    bus["ServiceNo"],
+                                    "3",
+                                    bus["NextBus3"]["Latitude"],
+                                    bus["NextBus3"]["Longitude"],
+                                    bus["NextBus3"]["EstimatedArrival"],
+                                )
+                            )
+
             except Exception as e:
-
-                print(e)
-
-                # _LOGGER.error(
-                #     e
-                #     # "Unable to interact with Datamall, ensure you have an internet connection and a proper bus stop code"
-                # )
-
-                for bus in hass.data["lta"]["buses"]:
-
-                    sensors.append(create_bus_sensor(bus, "1", "", "", "",))
-                    sensors.append(create_bus_sensor(bus, "2", "", "", "",))
-                    sensors.append(create_bus_sensor(bus, "3", "", "", "",))
+                _LOGGER.error(e, "An exeption has occurred")
 
             return sensors
 
@@ -146,15 +142,14 @@ async def async_setup_platform(hass, config, async_add_entities, discovery_info=
     await coordinator.async_refresh()
 
     async_add_entities(
-        LandTransportSensor(coordinator, idx)
-        for idx, ent in enumerate(coordinator.data)
+        BusArrivalSensor(coordinator, idx) for idx, ent in enumerate(coordinator.data)
     )
 
 
-class LandTransportSensor(Entity):
+class BusArrivalSensor(Entity):
     """
-    Sensor that reads bus arrival data from LTA's Datamall.
-    The Datamall provides transport related data.
+    Sensor that tracks bus arrival data from LTA's Datamall API.
+    The Datamall provides transport related data in Singapore.
     """
 
     def __init__(self, coordinator, idx):
@@ -174,14 +169,14 @@ class LandTransportSensor(Entity):
     @property
     def icon(self):
         """Return the icon of the sensor."""
-        if(self.coordinator.last_update_success):
+        if self.coordinator.last_update_success:
             return "mdi:bus-clock"
         else:
             return "mdi:bus-alert"
 
     @property
     def device_state_attributes(self):
-        """Return the attributes of the sensor"""
+        """Return the attributes of the sensor."""
         return self.coordinator.data[self.idx]["attributes"]
 
     @property
@@ -200,7 +195,7 @@ class LandTransportSensor(Entity):
 
     @property
     def available(self):
-        """Return the availability of sensor"""
+        """Return the availability of sensor."""
         return self.coordinator.last_update_success
 
     async def async_added_to_hass(self):
@@ -209,5 +204,5 @@ class LandTransportSensor(Entity):
         )
 
     async def async_update(self):
-        """Update sensor data"""
+        """Update sensor data."""
         await self.coordinator.async_request_refresh()
