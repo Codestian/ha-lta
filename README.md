@@ -2,7 +2,7 @@
 
 Home Assistant custom component to retrieve bus timings, using the [Datamall API](https://datamall.lta.gov.sg/content/datamall/en.html) provided by LTA.
 
-## What's new (2.1.1)
+## What's new (0.2.1)
 - Changed `device_state_attributes` to `extra_state_attributes`, longitude and latitude attributes should be working again.
 
 ## Installation (HACS)
