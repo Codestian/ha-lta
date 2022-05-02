@@ -2,9 +2,8 @@
 
 Home Assistant custom component to retrieve bus timings, using the [Datamall API](https://datamall.lta.gov.sg/content/datamall/en.html) provided by LTA.
 
-## What's new (2.0)
-- Multiple bus stops can be configured
-- Buses to track must be specified in configuration
+## What's new (2.1)
+- Changed `device_state_attributes` to `extra_state_attributes`, longitude and latitude attributes should be working again.
 
 ## Installation (HACS)
 
