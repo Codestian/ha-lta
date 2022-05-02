@@ -175,7 +175,7 @@ class BusArrivalSensor(Entity):
             return "mdi:bus-alert"
 
     @property
-    def extra_state_attributes(self):
+    def device_state_attributes(self):
         """Return the attributes of the sensor."""
         return self.coordinator.data[self.idx]["attributes"]
 
