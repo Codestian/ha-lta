@@ -2,16 +2,17 @@
 
 Home Assistant custom component to retrieve bus timings, using the [Datamall API](https://datamall.lta.gov.sg/content/datamall/en.html) provided by LTA.
 
-## What's new (2.1)
+## What's new (2.1.1)
 - Changed `device_state_attributes` to `extra_state_attributes`, longitude and latitude attributes should be working again.
+- Repository now available to download in the community store. You no longer need to add a custom repository.
 
 ## Installation (HACS)
 
 Installation by HACS is recommended if you would like to stay updated with latest releases.
 
-1. [Follow the instructions here](https://hacs.xyz/docs/faq/custom_repositories) and add this repository.
+1. Search for `ha-lta` in the community store and click on `Download this repository with HACS`.
 
-2. Request for an API key at [Datamall](https://datamall.lta.gov.sg/content/datamall/en/request-for-api.html). This key is required for Home Assistant to interact with the bus API.
+2. Once installed, request for an API key at [Datamall](https://datamall.lta.gov.sg/content/datamall/en/request-for-api.html). This key is required for Home Assistant to interact with the bus API.
 
 3. Restart Home Assistant and configure the component in configuration.yaml with the API key and bus stop codes.
 

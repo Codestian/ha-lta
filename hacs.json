@@ -1,4 +1,5 @@
 {
     "name": "ha-lta",
-    "country": "SG"
+    "country": "SG",
+    "render_readme": true
 }
