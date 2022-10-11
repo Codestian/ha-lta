@@ -1,9 +1,17 @@
-# LTA bus arrival timings custom component for Home Assistant 🚌
+# Singapore LTA bus timings custom component for Home Assistant 🚍
 
-Home Assistant custom component to retrieve bus timings, using the [Datamall API](https://datamall.lta.gov.sg/content/datamall/en.html) provided by LTA.
+Home Assistant custom component to retrieve bus timings in Singapore, using the [Datamall API](https://datamall.lta.gov.sg/content/datamall/en.html) provided by LTA.
 
-## What's new (0.2.1)
-- Changed `device_state_attributes` to `extra_state_attributes`, longitude and latitude attributes should be working again.
+## What's new (0.3.0)
+- Added `operator` and `type` attributes
+  - Now you can tell if its SMRT or Tower Transit etc
+  - As well as if its single or double deck
+- Fixed a bug where Home Assistant throws an error when buses tracking are not in operation
+- [**BREAKING CHANGE**] All sensor values are now strictly integers (no more `ARR` and `NA` text)
+  - This is to make automations easier to edit
+  - Buses that are arriving or not in operation have values set to `0` min
+  - To identify the timing statuses, the attribute flags `bus_arriving` and `bus_unavailable` must be used
+  - Refer to table below in **Usage** for explanation
 
 ## Installation (HACS)
 
@@ -54,11 +62,23 @@ lta.BUS_STOP_CODE-BUS_NUMBER-BUS_ORDER
 
 For example, sensor ```lta.98051-19-1``` indicates the first timing for bus 19 towards bus stop code 98051. Sensor ```lta.98051-19-2``` will indicate the next subsequent timing for the same bus number.
 
-Some buses only operate on certain timings. Home Assistant will automatically add and remember them when they are in operation.
+Some buses only operate on certain timings. By default, all bus numbers configured will have their timings and attributes set to either `0` or `""` unless the response from the API contains the necessary data.
 
-Most buses provide their present locations and can be viewed on the map.
+Most buses provide their present locations and can be viewed on the map. If no locations are provided by the API, both latitude and longitude are set to `0` respectively.
 
 ### Use cases
 - Tell the bus timing before leaving the house through a smart speaker
 - Setup a dashboard to track timings without opening phone app
-- Make use of timing entities for other IOT related projects 
+- Make use of timing entities for other IOT related projects
+- Have full control of what you want to do with bus timings
+
+### Attribute flags
+
+Version 0.3.0 introduces two new flags that can determine if a bus is either arriving or not in operation. The truth table is as follows:
+
+| `bus_arriving` | `bus_unavailable` | Result | Comments                                                                   |
+|--------------|-----------------|--------|----------------------------------------------------------------------------|
+| T            | T               | F      | Should not happen, considered invalid as bus cannot be unavailable and arriving at same time |
+| T            | F               | T      | Bus is less than 1 min to arrive at bus stop                             |
+| F            | T               | T      | Bus is not in operation at point in time or does not exist                    |
+| F            | F               | F      | Bus is taking X min to arrive at bus stop                                  |

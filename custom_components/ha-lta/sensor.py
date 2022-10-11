@@ -1,17 +1,17 @@
 """Real time bus arrival timings from LTA DataMall"""
-from datetime import datetime, timedelta, timezone
-import logging
-
-import async_timeout
-from dateutil import parser, tz
-from ltapysg import get_bus_arrival
-import voluptuous as vol
-
+import homeassistant.helpers.config_validation as cv
 from homeassistant.components.sensor import PLATFORM_SCHEMA
 from homeassistant.const import TIME_MINUTES
-import homeassistant.helpers.config_validation as cv
 from homeassistant.helpers.entity import Entity
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
+
+import logging
+import async_timeout
+import voluptuous as vol
+from datetime import datetime, timedelta, timezone
+from dateutil import parser, tz
+from ltapysg import get_bus_arrival
+from math import floor
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -21,9 +21,6 @@ CONF_API_KEY = "api_key"
 CONF_BUS_STOPS = "bus_stops"
 CONF_CODE = "code"
 CONF_BUSES = "buses"
-
-BUS_ARRIVING = "ARR"
-BUS_UNAVAILABLE = "NA"
 
 BUS_SCHEMA = {
     vol.Required(CONF_CODE): cv.string,
@@ -42,35 +39,53 @@ async def async_setup_platform(hass, config, async_add_entities, discovery_info=
     """Setup sensor and initialize platform with configuration values."""
 
     def create_bus_sensor(
-        bus_stop, bus_number, bus_order, bus_latitude, bus_longitude, bus_timing
+        bus_stop,
+        bus_number,
+        bus_order,
+        bus_latitude,
+        bus_longitude,
+        bus_timing,
+        bus_operator,
+        bus_type,
     ):
-        def convert_datetime(bustime):
+        def buildDict(bus_timing):
             """Convert UTC 8+ datetime to the number of minutes before bus arrives."""
-            if bustime:
-                time_bus = parser.parse(bustime).astimezone(tz.UTC)
+
+            bus_arriving = False
+            bus_unavailable = False
+            bus_state = 0
+
+            if bus_timing:
+                time_bus = parser.parse(bus_timing).astimezone(tz.UTC)
                 time_now = datetime.now(tz=timezone.utc)
 
                 time_diff = time_bus - time_now
 
-                time_diff_formatted = round(time_diff.total_seconds() / 60)
+                time_diff_formatted = floor(time_diff.total_seconds() / 60)
 
                 if time_diff_formatted <= 1:
-                    return BUS_ARRIVING
+                    bus_arriving = True
                 else:
-                    return time_diff_formatted
+                    bus_state = time_diff_formatted
             else:
-                return BUS_UNAVAILABLE
+                bus_unavailable = True
 
-        bus_dict = {
-            "unique_id": f"{bus_stop}_{bus_number}_{bus_order}",
-            "attributes": {}
-            if (bus_latitude == "0" and bus_longitude == "0")
-            or (bus_latitude == "" and bus_longitude == "")
-            else {"latitude": bus_latitude, "longitude": bus_longitude},
-            "state": convert_datetime(bus_timing),
-        }
+            bus_dict = {
+                "unique_id": f"{bus_stop}_{bus_number}_{bus_order}",
+                "attributes": {
+                    "bus_arriving": bus_arriving,
+                    "bus_unavailable": bus_unavailable,
+                    "latitude": bus_latitude,
+                    "longitude": bus_longitude,
+                    "operator": bus_operator,
+                    "type": bus_type,
+                },
+                "state": bus_state,
+            }
 
-        return bus_dict
+            return bus_dict
+
+        return buildDict(bus_timing)
 
     async def async_update_data():
         """Poll API and update data to sensors."""
@@ -86,10 +101,20 @@ async def async_setup_platform(hass, config, async_add_entities, discovery_info=
                         config.get(CONF_API_KEY), bus_stop["code"]
                     )
 
-                    for bus in data:
-                        """Loop through retrieved data and filter by configured buses."""
-                        if bus["ServiceNo"] in list(bus_stop["buses"]):
+                    print(data)
 
+                    for one in list(bus_stop["buses"]):
+                        idx = next(
+                            (
+                                index
+                                for (index, d) in enumerate(data)
+                                if d["ServiceNo"] == one
+                            ),
+                            None,
+                        )
+                        """If configured bus exists in API response, use data from response"""
+                        if idx is not None:
+                            bus = data[idx]
                             """Create entity for 1st timing."""
                             sensors.append(
                                 create_bus_sensor(
@@ -99,6 +124,8 @@ async def async_setup_platform(hass, config, async_add_entities, discovery_info=
                                     bus["NextBus"]["Latitude"],
                                     bus["NextBus"]["Longitude"],
                                     bus["NextBus"]["EstimatedArrival"],
+                                    bus["Operator"],
+                                    bus["NextBus"]["Type"],
                                 )
                             )
 
@@ -111,6 +138,8 @@ async def async_setup_platform(hass, config, async_add_entities, discovery_info=
                                     bus["NextBus2"]["Latitude"],
                                     bus["NextBus2"]["Longitude"],
                                     bus["NextBus2"]["EstimatedArrival"],
+                                    bus["Operator"],
+                                    bus["NextBus2"]["Type"],
                                 )
                             )
 
@@ -123,6 +152,27 @@ async def async_setup_platform(hass, config, async_add_entities, discovery_info=
                                     bus["NextBus3"]["Latitude"],
                                     bus["NextBus3"]["Longitude"],
                                     bus["NextBus3"]["EstimatedArrival"],
+                                    bus["Operator"],
+                                    bus["NextBus3"]["Type"],
+                                )
+                            )
+                        else:
+                            """Create entity for 1st timing."""
+                            sensors.append(
+                                create_bus_sensor(
+                                    bus_stop["code"], one, "1", 0, 0, 0, "", ""
+                                )
+                            )
+                            """Create entity for 2nd timing."""
+                            sensors.append(
+                                create_bus_sensor(
+                                    bus_stop["code"], one, "2", 0, 0, 0, "", ""
+                                )
+                            )
+                            """Create entity for 3rd timing."""
+                            sensors.append(
+                                create_bus_sensor(
+                                    bus_stop["code"], one, "3", 0, 0, 0, "", ""
                                 )
                             )
 
