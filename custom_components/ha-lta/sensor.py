@@ -1,7 +1,7 @@
 """Real time bus arrival timings from LTA DataMall"""
 import homeassistant.helpers.config_validation as cv
 from homeassistant.components.sensor import PLATFORM_SCHEMA
-from homeassistant.const import TIME_MINUTES
+from homeassistant.const import UnitOfTime.MINUTES
 from homeassistant.helpers.entity import Entity
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 
@@ -241,7 +241,7 @@ class BusArrivalSensor(Entity):
     @property
     def unit_of_measurement(self):
         """Return the unit of measurement."""
-        return TIME_MINUTES
+        return UnitOfTime.MINUTES
 
     @property
     def available(self):
