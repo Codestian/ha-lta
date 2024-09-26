@@ -1,7 +1,7 @@
 """Real time bus arrival timings from LTA DataMall"""
 import homeassistant.helpers.config_validation as cv
 from homeassistant.components.sensor import PLATFORM_SCHEMA
-from homeassistant.const import UnitOfTime.MINUTES
+from homeassistant.const import UnitOfTime
 from homeassistant.helpers.entity import Entity
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 
@@ -47,6 +47,7 @@ async def async_setup_platform(hass, config, async_add_entities, discovery_info=
         bus_timing,
         bus_operator,
         bus_type,
+        bus_load,
     ):
         def buildDict(bus_timing):
             """Convert UTC 8+ datetime to the number of minutes before bus arrives."""
@@ -79,6 +80,7 @@ async def async_setup_platform(hass, config, async_add_entities, discovery_info=
                     "longitude": bus_longitude,
                     "operator": bus_operator,
                     "type": bus_type,
+                    "load": bus_load
                 },
                 "state": bus_state,
             }
@@ -126,6 +128,7 @@ async def async_setup_platform(hass, config, async_add_entities, discovery_info=
                                     bus["NextBus"]["EstimatedArrival"],
                                     bus["Operator"],
                                     bus["NextBus"]["Type"],
+                                    bus["NextBus"]["Load"],
                                 )
                             )
 
@@ -140,6 +143,7 @@ async def async_setup_platform(hass, config, async_add_entities, discovery_info=
                                     bus["NextBus2"]["EstimatedArrival"],
                                     bus["Operator"],
                                     bus["NextBus2"]["Type"],
+                                    bus["NextBus2"]["Load"],
                                 )
                             )
 
@@ -154,25 +158,26 @@ async def async_setup_platform(hass, config, async_add_entities, discovery_info=
                                     bus["NextBus3"]["EstimatedArrival"],
                                     bus["Operator"],
                                     bus["NextBus3"]["Type"],
+                                    bus["NextBus3"]["Load"],
                                 )
                             )
                         else:
                             """Create entity for 1st timing."""
                             sensors.append(
                                 create_bus_sensor(
-                                    bus_stop["code"], one, "1", 0, 0, 0, "", ""
+                                    bus_stop["code"], one, "1", 0, 0, 0, "", "",""
                                 )
                             )
                             """Create entity for 2nd timing."""
                             sensors.append(
                                 create_bus_sensor(
-                                    bus_stop["code"], one, "2", 0, 0, 0, "", ""
+                                    bus_stop["code"], one, "2", 0, 0, 0, "", "",""
                                 )
                             )
                             """Create entity for 3rd timing."""
                             sensors.append(
                                 create_bus_sensor(
-                                    bus_stop["code"], one, "3", 0, 0, 0, "", ""
+                                    bus_stop["code"], one, "3", 0, 0, 0, "", "",""
                                 )
                             )
 
