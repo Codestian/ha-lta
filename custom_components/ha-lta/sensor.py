@@ -10,7 +10,6 @@ import async_timeout
 import voluptuous as vol
 from datetime import datetime, timedelta, timezone
 from dateutil import parser, tz
-from ltapysg import get_bus_arrival
 from math import floor
 
 _LOGGER = logging.getLogger(__name__)
