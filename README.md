@@ -2,7 +2,10 @@
 
 Home Assistant custom component to retrieve bus timings in Singapore, using the [Datamall API](https://datamall.lta.gov.sg/content/datamall/en.html) provided by LTA.
 
-## What's new (0.3.0)
+## Whats new:
+Updated to support v3 of the API (Thanks flaskr), and decapted Codestian's LTA Pip package
+
+## What's new'nt (0.3.0)
 - Added `operator` and `type` attributes
   - Now you can tell if its SMRT or Tower Transit etc
   - As well as if its single or double deck
