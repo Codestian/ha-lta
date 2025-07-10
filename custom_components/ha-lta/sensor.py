@@ -5,8 +5,10 @@ from homeassistant.const import UnitOfTime
 from homeassistant.helpers.entity import Entity
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 
+
 import logging
 import async_timeout
+from aiohttp import ClientSession, ClientConnectorError
 import voluptuous as vol
 from datetime import datetime, timedelta, timezone
 from dateutil import parser, tz
@@ -20,6 +22,9 @@ CONF_API_KEY = "api_key"
 CONF_BUS_STOPS = "bus_stops"
 CONF_CODE = "code"
 CONF_BUSES = "buses"
+BASE_URL = "https://datamall2.mytransport.sg/ltaodataservice/"
+
+
 
 BUS_SCHEMA = {
     vol.Required(CONF_CODE): cv.string,
@@ -33,6 +38,32 @@ PLATFORM_SCHEMA = PLATFORM_SCHEMA.extend(
     }
 )
 
+
+# Function to replace the lta pip module. Idea mainly from: https://github.com/Codestian/ha-lta/issues/19 Thanks to @flaskr for providing this fix
+async def call(api_key, url):
+    async with ClientSession() as session:
+        try:
+            async with session.get(
+                BASE_URL + url,
+                headers={"Accept": "application/json", "AccountKey": api_key},
+            ) as response:
+                if response.status == 200:
+                    return await response.json()
+                else:
+                    raise Exception(
+                        "Received status code " + str(response.status)
+                    ) from None
+        except ClientConnectorError as err:
+            raise Exception(str(err)) from None
+
+
+# Retrieve arrival timings for all buses operating for specified bus stop. Each bus has 3 recurring timings.
+async def get_bus_arrival(api_key, bus_stop_code):
+    data = await call(api_key, "v3/BusArrival?BusStopCode=" + str(bus_stop_code))
+        if "Services" not in data:
+        _LOGGER.warning("No 'Services' key in API response for bus stop %s: %s", bus_stop_code, data)
+        return []
+    return data["Services"]
 
 async def async_setup_platform(hass, config, async_add_entities, discovery_info=None):
     """Setup sensor and initialize platform with configuration values."""
