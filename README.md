@@ -23,9 +23,10 @@ Installation by HACS is recommended if you would like to stay updated with lates
 
 3. Restart Home Assistant and configure the component in configuration.yaml with the API key and bus stop codes.
 
+
 ## Installation (Manual)
 
-1. Download this repository as a ZIP. Copy the folder `/custom_components/ha-lta` and paste it to the `/custom_components/` folder in your Home Assistant directory. If you do not have a custom_components folder, create one.
+1. Download this repository as a ZIP. Copy the folder `ha-lta` and paste it to the `/custom_components/` folder in your Home Assistant directory. If you do not have a custom_components folder, create one.
 
 2. Request for an API key at [LTA Datamall](https://datamall.lta.gov.sg/content/datamall/en/request-for-api.html). This key is required for Home Assistant to interact with the bus API.
 
