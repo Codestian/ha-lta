@@ -49,21 +49,31 @@ async def call(api_key, url):
             ) as response:
                 if response.status == 200:
                     return await response.json()
+                elif response.status == 401:
+                     _LOGGER.warning("API denied: Unauthorized (invalid API key)")
                 else:
                     raise Exception(
                         "Received status code " + str(response.status)
                     ) from None
         except ClientConnectorError as err:
-            raise Exception(str(err)) from None
-
+            _LOGGER.warning("Client connection error")
 
 # Retrieve arrival timings for all buses operating for specified bus stop. Each bus has 3 recurring timings.
 async def get_bus_arrival(api_key, bus_stop_code):
-    data = await call(api_key, "v3/BusArrival?BusStopCode=" + str(bus_stop_code))
-        if "Services" not in data:
+    try:
+        data = await call(api_key, "v3/BusArrival?BusStopCode=" + str(bus_stop_code))
+    except Exception as err:
+        _LOGGER.warning("Failed to get bus arrival data for %s: %s", bus_stop_code, err)
+        return []
+
+    if "Services" not in data: # Just incase no services are in there
         _LOGGER.warning("No 'Services' key in API response for bus stop %s: %s", bus_stop_code, data)
         return []
+
     return data["Services"]
+
+
+
 
 async def async_setup_platform(hass, config, async_add_entities, discovery_info=None):
     """Setup sensor and initialize platform with configuration values."""
