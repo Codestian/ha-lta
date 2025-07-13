@@ -5,13 +5,12 @@ from homeassistant.const import UnitOfTime
 from homeassistant.helpers.entity import Entity
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 
-
 import logging
 import async_timeout
-from aiohttp import ClientSession, ClientConnectorError
 import voluptuous as vol
 from datetime import datetime, timedelta, timezone
 from dateutil import parser, tz
+from ltapysg import get_bus_arrival
 from math import floor
 
 _LOGGER = logging.getLogger(__name__)
@@ -22,9 +21,6 @@ CONF_API_KEY = "api_key"
 CONF_BUS_STOPS = "bus_stops"
 CONF_CODE = "code"
 CONF_BUSES = "buses"
-BASE_URL = "https://datamall2.mytransport.sg/ltaodataservice/"
-
-
 
 BUS_SCHEMA = {
     vol.Required(CONF_CODE): cv.string,
@@ -37,42 +33,6 @@ PLATFORM_SCHEMA = PLATFORM_SCHEMA.extend(
         vol.Required(CONF_BUS_STOPS): vol.All(cv.ensure_list, [vol.Schema(BUS_SCHEMA)]),
     }
 )
-
-
-# Function to replace the lta pip module. Idea mainly from: https://github.com/Codestian/ha-lta/issues/19 Thanks to @flaskr for providing this fix
-async def call(api_key, url):
-    async with ClientSession() as session:
-        try:
-            async with session.get(
-                BASE_URL + url,
-                headers={"Accept": "application/json", "AccountKey": api_key},
-            ) as response:
-                if response.status == 200:
-                    return await response.json()
-                elif response.status == 401:
-                     _LOGGER.warning("API denied: Unauthorized (invalid API key)")
-                else:
-                    raise Exception(
-                        "Received status code " + str(response.status)
-                    ) from None
-        except ClientConnectorError as err:
-            _LOGGER.warning("Client connection error")
-
-# Retrieve arrival timings for all buses operating for specified bus stop. Each bus has 3 recurring timings.
-async def get_bus_arrival(api_key, bus_stop_code):
-    try:
-        data = await call(api_key, "v3/BusArrival?BusStopCode=" + str(bus_stop_code))
-    except Exception as err:
-        _LOGGER.warning("Failed to get bus arrival data for %s: %s", bus_stop_code, err)
-        return []
-
-    if "Services" not in data: # Just incase no services are in there
-        _LOGGER.warning("No 'Services' key in API response for bus stop %s: %s", bus_stop_code, data)
-        return []
-
-    return data["Services"]
-
-
 
 
 async def async_setup_platform(hass, config, async_add_entities, discovery_info=None):
