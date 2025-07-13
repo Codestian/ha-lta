@@ -2,7 +2,10 @@
 
 Home Assistant custom component to retrieve bus timings in Singapore, using the [Datamall API](https://datamall.lta.gov.sg/content/datamall/en.html) provided by LTA.
 
-## What's new (0.3.0)
+## Whats new:
+Updated to support v3 of the API (Thanks flaskr), and decapted Codestian's LTA Pip package
+
+## What's new'nt (0.3.0)
 - Added `operator` and `type` attributes
   - Now you can tell if its SMRT or Tower Transit etc
   - As well as if its single or double deck
@@ -23,9 +26,10 @@ Installation by HACS is recommended if you would like to stay updated with lates
 
 3. Restart Home Assistant and configure the component in configuration.yaml with the API key and bus stop codes.
 
+
 ## Installation (Manual)
 
-1. Download this repository as a ZIP. Copy the folder `/custom_components/ha-lta` and paste it to the `/custom_components/` folder in your Home Assistant directory. If you do not have a custom_components folder, create one.
+1. Download this repository as a ZIP. Copy the folder `ha-lta` and paste it to the `/custom_components/` folder in your Home Assistant directory. If you do not have a custom_components folder, create one.
 
 2. Request for an API key at [LTA Datamall](https://datamall.lta.gov.sg/content/datamall/en/request-for-api.html). This key is required for Home Assistant to interact with the bus API.
 
