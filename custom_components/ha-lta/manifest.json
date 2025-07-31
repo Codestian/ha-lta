@@ -4,7 +4,6 @@
   "config_flow": false,
   "documentation": "https://www.home-assistant.io/integrations/lta",
   "requirements": [
-    "ltapysg==0.1.1"
   ],
   "ssdp": [],
   "zeroconf": [],
@@ -13,5 +12,5 @@
   "codeowners": [
     "@Codestian"
   ],
-  "version": "0.3.0"
+  "version": "0.4.0"
 }
